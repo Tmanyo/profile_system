@@ -153,13 +153,14 @@ function read_stuff()
      for line in file:lines() do
         table.insert (arr, line);
      end
+     return arr
 end
 
 function value_get(arr, val)
      players = read_stuff()
      local arr = {}
      for index, value in ipairs(arr) do
-         if value ~= val then
+         if value == val then
              return true
          end
      end
@@ -168,7 +169,7 @@ end
 
 minetest.register_chatcommand("profile", {
      param = "<name>",
-     func = function(name, param)
+     func = function(name, param, val)
           profile_system = read_table_data()
           if profile_system.saved_mood[param] == "" then
                profile_system.saved_mood[param] = "N/A"
@@ -183,9 +184,8 @@ minetest.register_chatcommand("profile", {
           end
           get_player_list()
           players = read_stuff()
+          local arr = {}
           if value_get(arr, param) then
-               minetest.chat_send_player(name, "Player ".. param .." does not exist or has not created a profile.")
-          else
                minetest.show_formspec(name, "profile_system:player_profile",
                     "size[7,7]" ..
                     "label[3,0;".. param .."]" ..
@@ -195,6 +195,8 @@ minetest.register_chatcommand("profile", {
                     "label[1,4;Other game names: "..profile_system.saved_othernames[param].."]" ..
                     "label[1,4.5;Player Description: "..profile_system.saved_entries[param].."]" ..
                     "button_exit[0,6.5;2,1;exit;Close]")
+          else
+               minetest.chat_send_player(name, "Player ".. param .." does not exist or has not created a profile.")
           end
      end
 })
