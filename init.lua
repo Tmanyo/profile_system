@@ -7,11 +7,6 @@ saved_mood = {},
 saved_rating = {}
 }
 
-minetest.register_on_joinplayer(function(player)
-     local name = player:get_player_name()
-     profile_system.players[name] = {a}
-end)
-
 minetest.register_chatcommand("profile_edit", {
   func = function(name, param)
     local text_area_content = profile_system.saved_entries[name] or ""
