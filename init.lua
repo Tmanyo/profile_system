@@ -4,24 +4,9 @@ saved_othernames = {},
 saved_first_played = {},
 saved_age = {},
 saved_mood = {},
-saved_rating = {}
+saved_rating = {},
+players = {}
 }
-
-minetest.register_chatcommand("profile_edit", {
-  func = function(name, param)
-    local text_area_content = profile_system.saved_entries[name] or ""
-    minetest.show_formspec(name, "profile_system:profile_edit",
-      "size[7,7]" ..
-      "label[0,0;Fill in the form to update your profile.]" ..
-      "label[0,5.5;".. minetest.formspec_escape(text_area_content) .."]" ..
-      "field[.5,1;3,.75;year_played;First year playing Minetest:; ]" ..
-      "field[.5,2;3,.75;other_names;Other game names:; ]" ..
-      "textarea[.5,3;5,3;short_description;Short description about yourself:; ]" ..
-      "label[3.5,.5;Choose your mood:]" ..
-      "dropdown[3.5,1;3;mood;Happy,Mad,Sad; ]" ..
-      "button_exit[0,6.5;2,1;exit;Submit]")
-  end
-})
 
 function save_table_data()
   local data = profile_system
@@ -39,6 +24,28 @@ function read_table_data()
   f:close()
     return data
 end
+
+minetest.register_on_joinplayer(function(player)
+     local name = player:get_player_name()
+     profile_system.players[name] = {shout = 0,}
+     profile_system = save_table_data()
+end)
+
+minetest.register_chatcommand("profile_edit", {
+  func = function(name, param)
+    local text_area_content = profile_system.saved_entries[name] or ""
+    minetest.show_formspec(name, "profile_system:profile_edit",
+      "size[7,7]" ..
+      "label[0,0;Fill in the form to update your profile.]" ..
+      "label[0,5.5;".. minetest.formspec_escape(text_area_content) .."]" ..
+      "field[.5,1;3,.75;year_played;First year playing Minetest:; ]" ..
+      "field[.5,2;3,.75;other_names;Other game names:; ]" ..
+      "textarea[.5,3;5,3;short_description;Short description about yourself:; ]" ..
+      "label[3.5,.5;Choose your mood:]" ..
+      "dropdown[3.5,1;3;mood;Happy,Mad,Sad; ]" ..
+      "button_exit[0,6.5;2,1;exit;Submit]")
+  end
+})
 
 minetest.register_on_player_receive_fields(function(player, formname, fields)
   if formname == "profile_system:profile_edit" then
@@ -78,8 +85,8 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
     profile_system.saved_entries[player:get_player_name()] = fields.short_description
     profile_system.saved_othernames[player:get_player_name()] = fields.other_names
     profile_system.saved_age[player:get_player_name()] = minetest_age
-    save_table_data()
   end
+  profile_system = save_table_data()
 end)
 
 profile_system = read_table_data()
@@ -128,43 +135,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
      end
 end)
 
-players = {
-playernames = {minetest.get_dir_list(minetest.get_worldpath().."/players", false)}
-}
-
-function get_player_list()
-     local stuff = players
-     local f, err = io.open(minetest.get_worldpath() .. "/player_profiles", "w")
-     if err then
-       return err
-     end
-     f:write(minetest.serialize(stuff))
-     f:close()
-end
-
-function read_stuff()
-     local file = io.open(minetest.get_worldpath() .. "/player_profiles", "r")
-     local arr = {}
-     for line in file:lines() do
-        table.insert (arr, line);
-     end
-     return arr
-end
-
-function value_get(arr, val)
-     players = read_stuff()
-     local arr = {}
-     for index, value in ipairs(arr) do
-         if value == val then
-             return true
-         end
-     end
-     return false
-end
-
 minetest.register_chatcommand("profile", {
      param = "<name>",
-     func = function(name, param, val)
+     func = function(name, param)
           profile_system = read_table_data()
           if profile_system.saved_mood[param] == "" then
                profile_system.saved_mood[param] = "N/A"
@@ -177,10 +150,7 @@ minetest.register_chatcommand("profile", {
           elseif profile_system.saved_entries[param] == "" then
                profile_system.saved_entries[param] = "N/A"
           end
-          get_player_list()
-          players = read_stuff()
-          local arr = {}
-          if value_get(arr, param) then
+          if profile_system.players[param] then
                minetest.show_formspec(name, "profile_system:player_profile",
                     "size[7,7]" ..
                     "label[3,0;".. param .."]" ..
@@ -190,7 +160,7 @@ minetest.register_chatcommand("profile", {
                     "label[1,4;Other game names: "..profile_system.saved_othernames[param].."]" ..
                     "label[1,4.5;Player Description: "..profile_system.saved_entries[param].."]" ..
                     "button_exit[0,6.5;2,1;exit;Close]")
-          else
+          elseif not profile_system.players[param] then
                minetest.chat_send_player(name, "Player ".. param .." does not exist or has not created a profile.")
           end
      end
